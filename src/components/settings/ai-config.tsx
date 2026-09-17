@@ -41,11 +41,13 @@ const HANDOFF_QUEUE = '__queue__';
 const PROVIDER_LABEL: Record<AiProvider, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic (Claude)',
+  custom: 'Custom (OpenAI-compatible)',
 };
 
 const KEY_PLACEHOLDER: Record<AiProvider, string> = {
   openai: 'sk-...',
   anthropic: 'sk-ant-...',
+  custom: 'api key from your provider',
 };
 
 export function AiConfig() {
@@ -68,6 +70,8 @@ export function AiConfig() {
   const [embeddingsKey, setEmbeddingsKey] = useState('');
   const [embeddingsKeyEdited, setEmbeddingsKeyEdited] = useState(false);
   const [hasStoredEmbeddingsKey, setHasStoredEmbeddingsKey] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [embeddingsBaseUrl, setEmbeddingsBaseUrl] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [isActive, setIsActive] = useState(false);
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
@@ -106,6 +110,8 @@ export function AiConfig() {
         setHasStoredEmbeddingsKey(Boolean(data.has_embeddings_key));
         setEmbeddingsKey(data.has_embeddings_key ? MASKED_KEY : '');
         setEmbeddingsKeyEdited(false);
+        setBaseUrl(data.base_url ?? '');
+        setEmbeddingsBaseUrl(data.embeddings_base_url ?? '');
       }
     } catch {
       toast.error(t('loadFailed'));
@@ -151,6 +157,8 @@ export function AiConfig() {
     auto_reply_enabled: autoReplyEnabled,
     auto_reply_max_per_conversation: maxPerConversation,
     handoff_agent_id: handoffAgentId || null,
+    base_url: baseUrl.trim() || null,
+    embeddings_base_url: embeddingsBaseUrl.trim() || null,
   });
 
   const handleTest = async () => {
@@ -163,6 +171,7 @@ export function AiConfig() {
           provider,
           model: model.trim(),
           api_key: keyPayload(),
+          base_url: baseUrl.trim() || null,
         }),
       });
       const data = await res.json();
@@ -281,6 +290,9 @@ export function AiConfig() {
                     <SelectItem value="anthropic">
                       {PROVIDER_LABEL.anthropic}
                     </SelectItem>
+                    <SelectItem value="custom">
+                      {PROVIDER_LABEL.custom}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -296,6 +308,22 @@ export function AiConfig() {
                 />
               </div>
             </div>
+
+            {provider === 'custom' && (
+              <div className="space-y-2">
+                <Label htmlFor="ai-base-url">Base URL</Label>
+                <Input
+                  id="ai-base-url"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="https://openrouter.ai/api/v1"
+                  disabled={disabled}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The base URL for your OpenAI-compatible API. The /chat/completions and /embeddings paths are appended automatically.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="ai-key">{t('apiKey')}</Label>
@@ -376,6 +404,26 @@ export function AiConfig() {
                 {t('embeddingsHint', {
                   sameKeyText: provider === 'openai' ? t('sameKeyText') : '',
                 })}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-embeddings-base-url">
+                Embeddings Base URL{' '}
+                <span className="font-normal text-muted-foreground">
+                  (optional — can differ from chat base URL)
+                </span>
+              </Label>
+              <Input
+                id="ai-embeddings-base-url"
+                value={embeddingsBaseUrl}
+                onChange={(e) => setEmbeddingsBaseUrl(e.target.value)}
+                placeholder="Leave blank to use chat base URL or OpenAI default"
+                disabled={disabled}
+              />
+              <p className="text-xs text-muted-foreground">
+                Only needed if your embeddings provider differs from your chat
+                provider (e.g., OpenRouter for chat + OpenAI for embeddings).
               </p>
             </div>
           </CardContent>

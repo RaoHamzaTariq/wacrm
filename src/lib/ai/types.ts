@@ -6,7 +6,7 @@
 // whether the account is on OpenAI or Anthropic.
 // ============================================================
 
-export type AiProvider = 'openai' | 'anthropic'
+export type AiProvider = 'openai' | 'anthropic' | 'custom'
 
 /**
  * Account AI setup, decrypted and ready to use. Produced by
@@ -29,6 +29,14 @@ export interface AiConfig {
    *  knowledge base is embedded and semantic retrieval turns on; when
    *  null, retrieval falls back to lexical full-text search. */
   embeddingsApiKey: string | null
+  /** Optional custom base URL for OpenAI-compatible APIs (OpenRouter,
+   *  Groq, Together, Ollama, etc.). When null, the provider's default
+   *  endpoint is used. */
+  baseUrl: string | null
+  /** Optional custom base URL for the embeddings endpoint. Separate
+   *  from baseUrl because chat and embeddings may use different
+   *  providers. When null, falls back to baseUrl, then to OpenAI default. */
+  embeddingsBaseUrl: string | null
 }
 
 /** A single conversation turn in the shape both providers accept. */

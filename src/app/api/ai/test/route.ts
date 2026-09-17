@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     }
 
     const provider = body.provider as AiProvider
-    if (provider !== 'openai' && provider !== 'anthropic') {
+    if (provider !== 'openai' && provider !== 'anthropic' && provider !== 'custom') {
       return NextResponse.json(
-        { error: 'provider must be "openai" or "anthropic"' },
+        { error: 'provider must be "openai", "anthropic", or "custom"' },
         { status: 400 },
       )
     }
@@ -39,6 +39,8 @@ export async function POST(request: Request) {
     }
 
     const rawKey = typeof body.api_key === 'string' ? body.api_key.trim() : ''
+    const baseUrl =
+      typeof body.base_url === 'string' ? body.base_url.trim() || null : null
     let apiKeyPlain = rawKey
     if (!apiKeyPlain) {
       const { data: existing } = await supabase
@@ -73,6 +75,8 @@ export async function POST(request: Request) {
         autoReplyMaxPerConversation: 3,
         handoffAgentId: null,
         embeddingsApiKey: null,
+        baseUrl,
+        embeddingsBaseUrl: null,
       })
     } catch (err) {
       if (err instanceof AiError) {

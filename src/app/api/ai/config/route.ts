@@ -30,7 +30,7 @@ export async function GET() {
       // `api_key` is selected only to derive `has_key` — it is stripped
       // out below and never returned to the client.
       .select(
-        'provider, model, system_prompt, is_active, auto_reply_enabled, auto_reply_max_per_conversation, handoff_agent_id, api_key, embeddings_api_key',
+        'provider, model, system_prompt, is_active, auto_reply_enabled, auto_reply_max_per_conversation, handoff_agent_id, api_key, embeddings_api_key, base_url, embeddings_base_url',
       )
       .eq('account_id', accountId)
       .maybeSingle()
@@ -78,8 +78,8 @@ export async function POST(request: Request) {
     if (!body || typeof body !== 'object') return bad('Invalid request body')
 
     const provider = body.provider as AiProvider
-    if (provider !== 'openai' && provider !== 'anthropic') {
-      return bad('provider must be "openai" or "anthropic"')
+    if (provider !== 'openai' && provider !== 'anthropic' && provider !== 'custom') {
+      return bad('provider must be "openai", "anthropic", or "custom"')
     }
     const model = typeof body.model === 'string' ? body.model.trim() : ''
     if (!model) return bad('model is required')
@@ -115,6 +115,15 @@ export async function POST(request: Request) {
     }
 
     const rawKey = typeof body.api_key === 'string' ? body.api_key.trim() : ''
+
+    // Custom base URLs for OpenAI-compatible providers. Null = use
+    // provider default; non-empty string = override; absent = unchanged.
+    const baseUrl =
+      typeof body.base_url === 'string' ? body.base_url.trim() || null : null
+    const embeddingsBaseUrl =
+      typeof body.embeddings_base_url === 'string'
+        ? body.embeddings_base_url.trim() || null
+        : null
 
     // Embeddings key (optional, for semantic KB search): a non-empty
     // string sets/replaces it; an explicit null clears it; absent leaves
@@ -167,6 +176,8 @@ export async function POST(request: Request) {
           autoReplyMaxPerConversation: maxPer,
           handoffAgentId: null,
           embeddingsApiKey: null,
+          baseUrl,
+          embeddingsBaseUrl: null,
         })
       } catch (err) {
         if (err instanceof AiError) {
@@ -184,7 +195,7 @@ export async function POST(request: Request) {
     // embed), same "verify before save" discipline as the chat key.
     if (rawEmbeddingsKey) {
       try {
-        await embedTexts(rawEmbeddingsKey, ['ping'])
+        await embedTexts(rawEmbeddingsKey, ['ping'], embeddingsBaseUrl ?? undefined)
       } catch (err) {
         if (err instanceof AiError) {
           return NextResponse.json(
@@ -205,6 +216,8 @@ export async function POST(request: Request) {
       is_active: isActive,
       auto_reply_enabled: autoReplyEnabled,
       auto_reply_max_per_conversation: maxPer,
+      base_url: baseUrl,
+      embeddings_base_url: embeddingsBaseUrl,
     }
     // Only touch the handoff target when the form actually sent the field,
     // so a partial save (e.g. flipping a toggle) doesn't wipe it.

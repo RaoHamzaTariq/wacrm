@@ -31,11 +31,13 @@ export async function generateReply(args: GenerateArgs): Promise<GenerateResult>
     systemPrompt,
     messages,
     timeoutMs,
+    baseUrl: config.baseUrl ?? undefined,
   }
 
   let result: { text: string; usage: AiUsage | null }
   switch (config.provider) {
     case 'openai':
+    case 'custom':
       result = await generateOpenAi(providerArgs)
       break
     case 'anthropic':

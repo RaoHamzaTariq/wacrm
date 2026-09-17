@@ -13,6 +13,8 @@ function config(overrides: Partial<AiConfig> = {}): AiConfig {
     autoReplyMaxPerConversation: 3,
     handoffAgentId: null,
     embeddingsApiKey: null,
+    baseUrl: null,
+    embeddingsBaseUrl: null,
     ...overrides,
   }
 }

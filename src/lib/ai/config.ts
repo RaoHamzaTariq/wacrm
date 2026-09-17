@@ -12,10 +12,12 @@ interface AiConfigRow {
   auto_reply_max_per_conversation: number
   handoff_agent_id: string | null
   embeddings_api_key: string | null
+  base_url: string | null
+  embeddings_base_url: string | null
 }
 
 const CONFIG_COLUMNS =
-  'provider, model, api_key, system_prompt, is_active, auto_reply_enabled, auto_reply_max_per_conversation, handoff_agent_id, embeddings_api_key'
+  'provider, model, api_key, system_prompt, is_active, auto_reply_enabled, auto_reply_max_per_conversation, handoff_agent_id, embeddings_api_key, base_url, embeddings_base_url'
 
 /**
  * Load and decrypt the account's AI config for *use* (draft or
@@ -79,6 +81,8 @@ export async function loadAiConfig(
     autoReplyMaxPerConversation: row.auto_reply_max_per_conversation,
     handoffAgentId: row.handoff_agent_id,
     embeddingsApiKey,
+    baseUrl: row.base_url,
+    embeddingsBaseUrl: row.embeddings_base_url,
   }
 }
 
@@ -96,19 +100,19 @@ export async function loadAiConfig(
 export async function loadEmbeddingsKey(
   db: SupabaseClient,
   accountId: string,
-): Promise<{ key: string | null; corrupt: boolean }> {
+): Promise<{ key: string | null; corrupt: boolean; embeddingsBaseUrl: string | null }> {
   const { data, error } = await db
     .from('ai_configs')
-    .select('embeddings_api_key')
+    .select('embeddings_api_key, embeddings_base_url')
     .eq('account_id', accountId)
     .maybeSingle()
-  if (error || !data?.embeddings_api_key) return { key: null, corrupt: false }
+  if (error || !data?.embeddings_api_key) return { key: null, corrupt: false, embeddingsBaseUrl: data?.embeddings_base_url ?? null }
   try {
-    return { key: decrypt(data.embeddings_api_key), corrupt: false }
+    return { key: decrypt(data.embeddings_api_key), corrupt: false, embeddingsBaseUrl: data.embeddings_base_url ?? null }
   } catch {
     console.error(
       `[ai config] embeddings key for account ${accountId} could not be decrypted — check ENCRYPTION_KEY.`,
     )
-    return { key: null, corrupt: true }
+    return { key: null, corrupt: true, embeddingsBaseUrl: data.embeddings_base_url ?? null }
   }
 }

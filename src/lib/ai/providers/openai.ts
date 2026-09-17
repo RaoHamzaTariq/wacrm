@@ -8,7 +8,7 @@ import {
   type ProviderArgs,
 } from './shared'
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
+const DEFAULT_OPENAI_BASE = 'https://api.openai.com'
 
 interface OpenAiResponse {
   choices?: { message?: { content?: string } }[]
@@ -25,11 +25,12 @@ interface OpenAiResponse {
  * in `generateReply`).
  */
 export async function generateOpenAi(args: ProviderArgs): Promise<ProviderResult> {
-  const { apiKey, model, systemPrompt, messages, timeoutMs } = args
+  const { apiKey, model, systemPrompt, messages, timeoutMs, baseUrl } = args
+  const base = baseUrl?.replace(/\/+$/, '') ?? DEFAULT_OPENAI_BASE
 
   let res: Response
   try {
-    res = await fetch(OPENAI_URL, {
+    res = await fetch(`${base}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,

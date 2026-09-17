@@ -13,7 +13,7 @@ import { providerHttpError, toNetworkError } from './providers/shared'
 // migration 030.
 // ============================================================
 
-const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings'
+const DEFAULT_OPENAI_BASE = 'https://api.openai.com'
 
 export const EMBEDDING_MODEL = 'text-embedding-3-small'
 export const EMBEDDING_DIMENSIONS = 1536
@@ -41,9 +41,11 @@ export function toVectorLiteral(embedding: number[]): string {
 export async function embedTexts(
   apiKey: string,
   inputs: string[],
+  baseUrl?: string,
 ): Promise<number[][]> {
   if (inputs.length === 0) return []
   const timeoutMs = aiRequestTimeoutMs()
+  const base = baseUrl?.replace(/\/+$/, '') ?? DEFAULT_OPENAI_BASE
   const out: number[][] = []
 
   for (let start = 0; start < inputs.length; start += BATCH_SIZE) {
@@ -51,7 +53,7 @@ export async function embedTexts(
 
     let res: Response
     try {
-      res = await fetch(OPENAI_EMBEDDINGS_URL, {
+      res = await fetch(`${base}/v1/embeddings`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
